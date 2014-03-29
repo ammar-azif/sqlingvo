@@ -2,9 +2,9 @@
   (:require [sqlingvo.parser :refer :all]
             [clojure.test :refer :all]))
 
-(deftest test-select
+(deftest test-sql-parser
   (are [sql expected]
-    (is (= expected (select sql)))
+    (is (= [:sql expected] (sql-parser sql)))
     "SELECT 1"
     [:select "SELECT"
      [:select-fields

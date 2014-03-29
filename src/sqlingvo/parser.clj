@@ -5,9 +5,10 @@
   (insta/parser
    "whitespace = #'\\s+'"))
 
-(def select
+(def sql-parser
   (insta/parser
-   "select = 'SELECT' distinct-clause? select-fields from-clause?
+   "sql = select
+    select = 'SELECT' distinct-clause? select-fields from-clause?
     distinct-clause = (('ALL' | 'DISTINCT'))?
     select-fields = ('*' | select-field (',' select-field)*)
     select-field = (expression ('AS' output-name)?)
