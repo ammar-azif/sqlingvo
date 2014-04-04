@@ -1,6 +1,7 @@
 (ns sqlingvo.compiler-test
   (:require [clojure.test :refer :all]
             [sqlingvo.compiler :refer :all]
+            [sqlingvo.util :refer [parse-tables]]
             [sqlingvo.vendor :refer [->postgresql]]))
 
 (def db (->postgresql))
@@ -50,18 +51,31 @@
 (deftest test-compile-drop-table
   (are [ast expected]
     (is (= expected (compile-sql db ast)))
-    {:op :drop-table :tables [{:op :table :name :continents}]}
+    {:op :drop-table
+     :children [:tables]
+     :tables (parse-tables [:continents])}
     ["DROP TABLE \"continents\""]
-    {:op :drop-table :tables [{:op :table :name :continents}] :cascade {:op :cascade :cascade true}}
+    {:op :drop-table
+     :children [:tables :cascade]
+     :tables (parse-tables [:continents])
+     :cascade {:op :cascade :condition true}}
     ["DROP TABLE \"continents\" CASCADE"]
-    {:op :drop-table :tables [{:op :table :name :continents}] :restrict {:op :restrict :restrict true}}
+    {:op :drop-table
+     :children [:tables :restrict]
+     :tables (parse-tables [:continents])
+     :restrict {:op :restrict :condition true}}
     ["DROP TABLE \"continents\" RESTRICT"]
-    {:op :drop-table :tables [{:op :table :name :continents}] :if-exists {:op :if-exists :if-exists true}}
+    {:op :drop-table
+     :children [:if-exists :tables]
+     :if-exists {:op :if-exists :condition true}
+     :tables (parse-tables [:continents])}
     ["DROP TABLE IF EXISTS \"continents\""]
-    {:op :drop-table :tables [{:op :table :name :continents}]
-     :cascade {:op :cascade :cascade true}
-     :restrict {:op :restrict :restrict true}
-     :if-exists {:op :if-exists :if-exists true}}
+    {:op :drop-table
+     :children [:if-exists :tables :cascade :restrict]
+     :if-exists {:op :if-exists :condition true}
+     :tables (parse-tables [:continents])
+     :cascade {:op :cascade :condition true}
+     :restrict {:op :restrict :condition true}}
     ["DROP TABLE IF EXISTS \"continents\" CASCADE RESTRICT"]))
 
 (deftest test-compile-limit
@@ -105,3 +119,16 @@
     ["SELECT 1"]
     ["(SELECT ?)" "x"]
     ["SELECT ?" "x"]))
+
+(deftest test-compile-tables
+  (are [node expected]
+    (= expected (compile-sql db node))
+    {:op :tables
+     :children [:tables]
+     :tables [{:children [:name] :name :continents :op :table}]}
+    ["\"continents\""]
+    {:op :tables
+     :children [:tables]
+     :tables [{:children [:name] :name :continents :op :table}
+              {:children [:name] :name :countries :op :table}]}
+    ["\"continents\", \"countries\""]))

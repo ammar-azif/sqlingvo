@@ -53,7 +53,7 @@
 (defn cascade
   "Returns a fn that adds a CASCADE clause to an SQL statement."
   [condition]
-  (conditional-clause :cascade condition))
+  (conj-node :op :cascade :condition condition))
 
 (defn column
   "Add a column to `stmt`."
@@ -139,7 +139,10 @@
               (make-node
                :op :drop-table
                :children [:tables]
-               :tables tables))))))
+               :tables (make-node
+                        :op :tables
+                        :children [:tables]
+                        :tables tables)))))))
 
 (defn except
   "Returns a fn that adds a EXCEPT clause to an SQL statement."
@@ -171,7 +174,9 @@
 (defn if-exists
   "Returns a fn that adds a IF EXISTS clause to an SQL statement."
   [condition]
-  (conditional-clause :if-exists condition))
+  (cons-node
+   :op :if-exists
+   :condition condition))
 
 (defn if-not-exists
   "Returns a fn that adds a IF EXISTS clause to an SQL statement."
@@ -290,7 +295,7 @@
 (defn restrict
   "Returns a fn that adds a RESTRICT clause to an SQL statement."
   [condition]
-  (conditional-clause :restrict condition))
+  (conj-node :op :restrict :condition condition))
 
 (defn returning
   "Returns a fn that adds a RETURNING clause to an SQL statement."

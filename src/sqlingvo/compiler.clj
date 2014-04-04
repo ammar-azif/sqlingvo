@@ -40,6 +40,10 @@
 
 (defmulti compile-sql (fn [db ast] (:op ast)))
 
+(defn compile-children [db node]
+  (map #(compile-sql db %1)
+       (map node (:children node))))
+
 (defn keyword-sql [k]
   (replace (upper-case (name k)) #"-" " "))
 
@@ -201,8 +205,8 @@
 
 ;; COMPILE SQL
 
-(defmethod compile-sql :cascade [db {:keys [op]}]
-  ["CASCADE"])
+(defmethod compile-sql :cascade [db node]
+  (if (:condition node) ["CASCADE"]))
 
 (defmethod compile-sql :condition [db {:keys [condition]}]
   (compile-sql db condition))
@@ -281,12 +285,8 @@
      (concat-sql "ON (" (join-sql ", " (map #(compile-sql db %1) on)) ") "))
    (join-sql ", " (map #(compile-sql db %1) exprs))))
 
-(defmethod compile-sql :drop-table [db {:keys [cascade if-exists restrict tables]}]
-  (join-sql " " ["DROP TABLE"
-                 (compile-sql db if-exists)
-                 (join-sql ", " (map #(compile-sql db %1) tables))
-                 (compile-sql db cascade)
-                 (compile-sql db restrict)]))
+(defmethod compile-sql :drop-table [db node]
+  (join-sql " " (cons "DROP TABLE" (compile-children db node))))
 
 (defmethod compile-sql :except [db node]
   (compile-set-op db :except node))
@@ -313,8 +313,8 @@
 (defmethod compile-sql :group-by [db {:keys [exprs]}]
   (concat-sql "GROUP BY" (compile-sql db exprs)))
 
-(defmethod compile-sql :if-exists [db {:keys [op]}]
-  ["IF EXISTS"])
+(defmethod compile-sql :if-exists [db node]
+  (if (:condition node) ["IF EXISTS"]))
 
 (defmethod compile-sql :insert [db {:keys [table columns rows default-values values returning select]}]
   (let [columns (if (and (empty? columns)
@@ -389,11 +389,14 @@
   [(str (join "." (map #(sql-quote db %1) (remove nil? [schema name])))
         (compile-alias db as))])
 
+(defmethod compile-sql :tables [db node]
+  (join-sql ", " (map #(compile-sql db %1) (:tables node))))
+
 (defmethod compile-sql :refresh-materialized-view [db {:keys [view]}]
   (concat-sql "REFRESH MATERIALIZED VIEW " (compile-sql db view)))
 
-(defmethod compile-sql :restrict [db {:keys [op]}]
-  ["RESTRICT"])
+(defmethod compile-sql :restrict [db node]
+  (if (:condition node) ["RESTRICT"]))
 
 (defmethod compile-sql :restart-identity [db {:keys [op]}]
   ["RESTART IDENTITY"])

@@ -50,6 +50,18 @@
   (fn [stmt]
     [nil (dissoc stmt k)]))
 
+(defn conj-node [& {:as node}]
+  (fn [stmt]
+    (let [op (:op node)]
+      [nil (-> (assoc stmt op node)
+               (update-in [:children] conj op))])))
+
+(defn cons-node [& {:as node}]
+  (fn [stmt]
+    (let [op (:op node)]
+      [nil (-> (assoc stmt op node)
+               (update-in [:children] #(vec (cons op %))))])))
+
 (defn sequential
   "Returns `x` as a sequential data structure."
   [x]
@@ -127,6 +139,14 @@
          :schema (keyword (nth matches 2))
          :name (keyword (nth matches 3))
          :as (keyword (nth matches 5))))))
+
+(defn parse-tables
+  "Parse a seq of keywords as tables and return a node."
+  [tables]
+  (make-node
+   :op :tables
+   :children [:tables]
+   :tables (map parse-table tables)))
 
 (defn attribute?
   "Returns true if `form` is an attribute for a composite type."

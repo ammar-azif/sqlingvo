@@ -258,14 +258,14 @@
   ["DROP TABLE \"continents\""]
   (drop-table [:continents])
   (is (= :drop-table (:op stmt)))
-  (is (= [(parse-table :continents)] (:tables stmt)))
+  (is (= (parse-tables [:continents]) (:tables stmt)))
   (is (= [:tables] (:children stmt))))
 
 (deftest-stmt test-drop-continents-and-countries
   ["DROP TABLE \"continents\", \"countries\""]
   (drop-table [:continents :countries])
   (is (= :drop-table (:op stmt)))
-  (is (= (map parse-table [:continents :countries]) (:tables stmt)))
+  (is (= (parse-tables [:continents :countries]) (:tables stmt)))
   (is (= [:tables] (:children stmt))))
 
 (deftest-stmt test-drop-continents-countries-if-exists-restrict
@@ -274,24 +274,34 @@
     (if-exists true)
     (restrict true))
   (is (= :drop-table (:op stmt)))
-  (is (= {:op :if-exists} (:if-exists stmt)))
-  (is (= (map parse-table [:continents :countries]) (:tables stmt)))
-  (is (= {:op :restrict} (:restrict stmt)))
-  (is (= [:tables] (:children stmt))))
+  (is (= {:op :if-exists :condition true} (:if-exists stmt)))
+  (is (= (parse-tables [:continents :countries]) (:tables stmt)))
+  (is (= {:op :restrict :condition true} (:restrict stmt)))
+  (is (= [:if-exists :tables :restrict] (:children stmt))))
 
 (deftest-stmt test-drop-continents-if-exists
   ["DROP TABLE IF EXISTS \"continents\""]
   (drop-table [:continents]
     (if-exists true))
-  (is (= (map parse-table [:continents]) (:tables stmt)))
-  (is (= [:tables] (:children stmt))))
+  (is (= (parse-tables [:continents]) (:tables stmt)))
+  (is (= [:if-exists :tables] (:children stmt))))
 
 (deftest-stmt test-drop-continents-if-exists-false
   ["DROP TABLE \"continents\""]
   (drop-table [:continents]
     (if-exists false))
-  (is (= (map parse-table [:continents]) (:tables stmt)))
-  (is (= [:tables] (:children stmt))))
+  (is (= (parse-tables [:continents]) (:tables stmt)))
+  (is (= [:if-exists :tables] (:children stmt))))
+
+(deftest-stmt test-drop-continents-cascade-true
+  ["DROP TABLE \"continents\" CASCADE"]
+  (drop-table [:continents]
+    (cascade true)))
+
+(deftest-stmt test-drop-continents-cascade-false
+  ["DROP TABLE \"continents\""]
+  (drop-table [:continents]
+    (cascade false)))
 
 ;; INSERT
 
@@ -1132,7 +1142,7 @@
     (restrict true))
   (is (= :truncate (:op stmt)))
   (is (= [(parse-table :continents)] (:tables stmt)))
-  (is (= {:op :restrict} (:restrict stmt)))
+  (is (= {:op :restrict :condition true} (:restrict stmt)))
   (is (= {:op :restart-identity} (:restart-identity stmt))))
 
 (deftest-stmt test-truncate-continents-continue-cascade
@@ -1142,7 +1152,7 @@
     (cascade true))
   (is (= :truncate (:op stmt)))
   (is (= [(parse-table :continents)] (:tables stmt)))
-  (is (= {:op :cascade} (:cascade stmt)))
+  (is (= {:op :cascade :condition true} (:cascade stmt)))
   (is (= {:op :continue-identity} (:continue-identity stmt))))
 
 (deftest-stmt test-truncate-continue-identity
