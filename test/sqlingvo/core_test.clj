@@ -1125,14 +1125,14 @@
   ["TRUNCATE TABLE \"continents\""]
   (truncate [:continents])
   (is (= :truncate (:op stmt)))
-  (is (= [(parse-table :continents)] (:tables stmt)))
+  (is (= (parse-tables [:continents]) (:tables stmt)))
   (is (= [:tables] (:children stmt))))
 
 (deftest-stmt test-truncate-continents-and-countries
   ["TRUNCATE TABLE \"continents\", \"countries\""]
   (truncate [:continents :countries])
   (is (= :truncate (:op stmt)))
-  (is (= (map parse-table [:continents :countries]) (:tables stmt)))
+  (is (= (parse-tables [:continents :countries]) (:tables stmt)))
   (is (= [:tables] (:children stmt))))
 
 (deftest-stmt test-truncate-continents-restart-restrict
@@ -1141,9 +1141,9 @@
     (restart-identity true)
     (restrict true))
   (is (= :truncate (:op stmt)))
-  (is (= [(parse-table :continents)] (:tables stmt)))
+  (is (= (parse-tables [:continents]) (:tables stmt)))
   (is (= {:op :restrict :condition true} (:restrict stmt)))
-  (is (= {:op :restart-identity} (:restart-identity stmt))))
+  (is (= {:op :restart-identity :condition true} (:restart-identity stmt))))
 
 (deftest-stmt test-truncate-continents-continue-cascade
   ["TRUNCATE TABLE \"continents\" CONTINUE IDENTITY CASCADE"]
@@ -1151,14 +1151,16 @@
     (continue-identity true)
     (cascade true))
   (is (= :truncate (:op stmt)))
-  (is (= [(parse-table :continents)] (:tables stmt)))
+  (is (= (parse-tables [:continents]) (:tables stmt)))
   (is (= {:op :cascade :condition true} (:cascade stmt)))
-  (is (= {:op :continue-identity} (:continue-identity stmt))))
+  (is (= {:op :continue-identity :condition true} (:continue-identity stmt))))
 
 (deftest-stmt test-truncate-continue-identity
   ["TRUNCATE TABLE \"continents\" CONTINUE IDENTITY"]
   (truncate [:continents]
-    (continue-identity true)))
+    (continue-identity true))
+  (is (= :truncate (:op stmt)))
+  (is (= (parse-tables [:continents]) (:tables stmt))))
 
 (deftest-stmt test-truncate-continue-identity-false
   ["TRUNCATE TABLE \"continents\""]

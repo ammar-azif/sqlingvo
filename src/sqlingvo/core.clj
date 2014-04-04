@@ -70,7 +70,7 @@
 (defn continue-identity
   "Returns a fn that adds a CONTINUE IDENTITY clause to an SQL statement."
   [condition]
-  (conditional-clause :continue-identity condition))
+  (conj-node :op :continue-identity :condition condition))
 
 (defn desc
   "Parse `expr` and return an ORDER BY expr using descending order."
@@ -290,7 +290,7 @@
 (defn restart-identity
   "Returns a fn that adds a RESTART IDENTITY clause to an SQL statement."
   [condition]
-  (conditional-clause :restart-identity condition))
+  (conj-node :op :restart-identity :condition condition))
 
 (defn restrict
   "Returns a fn that adds a RESTRICT clause to an SQL statement."
@@ -327,13 +327,12 @@
 (defn truncate
   "Returns a fn that builds a TRUNCATE statement."
   [tables & body]
-  (let [tables (map parse-table tables)]
-    (Stmt. (fn [_]
-             ((m-seq (remove nil? body))
-              (make-node
-               :op :truncate
-               :children [:tables]
-               :tables tables))))))
+  (Stmt. (fn [_]
+           ((m-seq (remove nil? body))
+            (make-node
+             :op :truncate
+             :children [:tables]
+             :tables (parse-tables tables))))))
 
 (defn union
   "Returns a fn that adds a UNION clause to an SQL statement."

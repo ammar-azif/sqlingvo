@@ -225,8 +225,8 @@
 (defmethod compile-sql :constant [db node]
   (compile-const db node))
 
-(defmethod compile-sql :continue-identity [db {:keys [op]}]
-  ["CONTINUE IDENTITY"])
+(defmethod compile-sql :continue-identity [db node]
+  (if (:condition node) ["CONTINUE IDENTITY"]))
 
 (defmethod compile-sql :copy [db {:keys [columns delimiter encoding from to table]}]
   (concat-sql
@@ -398,8 +398,8 @@
 (defmethod compile-sql :restrict [db node]
   (if (:condition node) ["RESTRICT"]))
 
-(defmethod compile-sql :restart-identity [db {:keys [op]}]
-  ["RESTART IDENTITY"])
+(defmethod compile-sql :restart-identity [db node]
+  (if (:condition node) ["RESTART IDENTITY"]))
 
 (defmethod compile-sql :select [db {:keys [exprs distinct joins from where group-by limit offset order-by set]}]
   (concat-sql
@@ -423,13 +423,8 @@
    (if-not (empty? set)
      (concat-sql " " (join-sql ", " (map #(compile-sql db %1) set))))))
 
-(defmethod compile-sql :truncate [db {:keys [tables continue-identity restart-identity cascade restrict]}]
-  (join-sql " " ["TRUNCATE TABLE"
-                 (join-sql ", " (map #(compile-sql db %1) tables))
-                 (compile-sql db continue-identity)
-                 (compile-sql db restart-identity)
-                 (compile-sql db cascade)
-                 (compile-sql db restrict)]))
+(defmethod compile-sql :truncate [db node]
+  (join-sql " " (cons "TRUNCATE TABLE" (compile-children db node))))
 
 (defmethod compile-sql :union [db node]
   (compile-set-op db :union node))
